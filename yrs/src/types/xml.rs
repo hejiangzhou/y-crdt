@@ -991,10 +991,13 @@ pub trait Xml: AsRef<Branch> {
     }
 
     /// Inserts an attribute entry into current XML element.
-    fn insert_attribute_prelim<K, V>(&self, txn: &mut TransactionMut, attr_name: K, attr_value: V)
-    where
+    fn insert_attribute_any<K>(
+        &self,
+        txn: &mut TransactionMut,
+        attr_name: K,
+        attr_value: crate::any::Any,
+    ) where
         K: Into<Arc<str>>,
-        V: Prelim,
     {
         let key = attr_name.into();
         let pos = {
@@ -1017,7 +1020,11 @@ pub trait Xml: AsRef<Branch> {
         K: Into<Arc<str>>,
         V: Into<String>,
     {
-        self.insert_attribute_prelim(txn, attr_name, EmbedPrelim::from(attr_value.into()))
+        self.insert_attribute_any(
+            txn,
+            attr_name,
+            crate::any::Any::String(Arc::from(attr_value.into())),
+        )
     }
 
     /// Returns a value of an attribute given its `attr_name`. Returns `None` if no such attribute
