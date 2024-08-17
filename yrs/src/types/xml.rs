@@ -20,6 +20,8 @@ use crate::{
     ReadTxn, StickyIndex, Text, TextRef, ID,
 };
 
+use super::block::PrelimString;
+
 pub trait XmlPrelim: Prelim {}
 
 /// Trait shared by preliminary types that can be used as XML nodes: [XmlElementPrelim],
@@ -989,13 +991,12 @@ pub trait Xml: AsRef<Branch> {
     }
 
     /// Inserts an attribute entry into current XML element.
-    fn insert_attribute<K, V>(&self, txn: &mut TransactionMut, attr_name: K, attr_value: V)
+    fn insert_attribute_prelim<K, V>(&self, txn: &mut TransactionMut, attr_name: K, attr_value: V)
     where
         K: Into<Arc<str>>,
-        V: Into<String>,
+        V: Prelim,
     {
         let key = attr_name.into();
-        let value = attr_value.into();
         let pos = {
             let branch = self.as_ref();
             let left = branch.map.get(&key);
@@ -1007,8 +1008,16 @@ pub trait Xml: AsRef<Branch> {
                 current_attrs: None,
             }
         };
+        txn.create_item(&pos, attr_value, Some(key));
+    }
 
-        txn.create_item(&pos, value, Some(key));
+    /// Inserts an attribute entry into current XML element.
+    fn insert_attribute<K, V>(&self, txn: &mut TransactionMut, attr_name: K, attr_value: V)
+    where
+        K: Into<Arc<str>>,
+        V: Into<String>,
+    {
+        self.insert_attribute_prelim(txn, attr_name, EmbedPrelim::from(attr_value.into()))
     }
 
     /// Returns a value of an attribute given its `attr_name`. Returns `None` if no such attribute
